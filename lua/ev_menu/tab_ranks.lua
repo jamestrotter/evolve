@@ -6,7 +6,8 @@ TAB.Title = "Ranks"
 TAB.Description = "Manage ranks."
 TAB.Icon = "group"
 TAB.Author = "Overv"
-TAB.Width = 680
+TAB.BaseWidth = 680
+TAB.Width = TAB.BaseWidth
 TAB.Privileges = { "Rank menu" }
 
 // This determines if the second privilege list column toggles all privileges on or off
@@ -19,7 +20,7 @@ function TAB:Initialize( pnl )
 	// Create the rank list
 	self.RankList = vgui.Create( "DListView", pnl )
 	self.RankList:SetPos( 0, 0 )
-	self.RankList:SetSize( self.Width/2 - 6, 125 )
+	self.RankList:SetSize( self.BaseWidth/2 - 6, 125 )
 	self.RankList:AddColumn("Ranks")
 	self.RankList.Think = function()
 		local lastRank = self.RankList:GetSelected()[1]
@@ -37,17 +38,27 @@ function TAB:Initialize( pnl )
 		self.Usergroup:SetVisible( self.LastRank != "owner" )
 		self.PrivList:SetVisible( self.LastRank != "owner" )
 		self.PrivFilter:SetVisible(self.LastRank != "owner")
-		self.RemoveButton:SetVisible( self.LastRank != "owner" )
-		
+		self.PrivFilterLabel:SetVisible( self.LastRank != "owner" )
+		self.RemoveButton:SetVisible( self.LastRank != "owner" && self.LastRank != "guest")
+		local w = TAB.BaseWidth
+		if (self.LastRank == "owner") then
+			w=TAB.BaseWidth/2
+		end
+		self.Width = w
+
 		if ( self.LastRank == "owner" ) then
 			self.PropertyContainer:SetSize( 0, 0 )
-			self.RenameButton:SetPos( self.Width/2 - 60 - 6, pnl:GetParent():GetTall() - 58 )
 		else
-			self.PropertyContainer:SetSize( self.Width/2 - 6, 74 )
-			self.RenameButton:SetPos( self.Width/2 - 125 - 6, pnl:GetParent():GetTall() - 58 )
+			self.PropertyContainer:SetSize( self.BaseWidth/2 - 6, 74 )
 		end
 		
-		self.ColorPicker:SetSize( self.Width/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
+		if (self.LastRank == "owner" or self.LastRank == "guest") then
+			self.RenameButton:SetPos( self.BaseWidth/2 - 60 - 6, pnl:GetParent():GetTall() - 58 )
+		else
+			self.RenameButton:SetPos( self.BaseWidth/2 - 125 - 6, pnl:GetParent():GetTall() - 58 )
+		end
+
+		self.ColorPicker:SetSize( self.BaseWidth/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
 		self.ColorPicker:SetColor( evolve.ranks[ self.LastRank ].Color or color_white )
 		self.Immunity:SetValue( evolve.ranks[ self.LastRank ].Immunity or 0 )
 		self.Usergroup:SetText( evolve.ranks[ self.LastRank ].UserGroup or "unknown" )
@@ -56,12 +67,12 @@ function TAB:Initialize( pnl )
 	
 	self.PropertyContainer = vgui.Create( "DPanelList", pnl )
 	self.PropertyContainer:SetPos( 0, 130 )
-	self.PropertyContainer:SetSize( self.Width/2 - 6, 74 )
+	self.PropertyContainer:SetSize( self.BaseWidth/2 - 6, 74 )
 
 	// Immunity
 	self.Immunity = vgui.Create( "DNumSlider", self.PropertyContainer )
 	self.Immunity:SetPos( 6, 5 )
-	self.Immunity:SetWide( self.Width/2 - 12 )
+	self.Immunity:SetWide( self.BaseWidth/2 - 12 )
 	self.Immunity:SetDecimals( 0 )
 	self.Immunity:SetMin( 0 )
 	self.Immunity:SetMax( 99 )
@@ -91,7 +102,7 @@ function TAB:Initialize( pnl )
 	//wtf does user group even do?
 	self.Usergroup = vgui.Create( "DComboBox", self.PropertyContainer )
 	self.Usergroup:SetPos( 74, 49 )
-	self.Usergroup:SetSize( self.Width/2 - 79 - 6, 20 )
+	self.Usergroup:SetSize( self.BaseWidth/2 - 79 - 6, 20 )
 	self.Usergroup:AddChoice( "guest" )
 	self.Usergroup:AddChoice( "admin" )
 	self.Usergroup:AddChoice( "superadmin" )
@@ -107,11 +118,11 @@ function TAB:Initialize( pnl )
 	local colorPickerY = self.RankList:GetTall() + 84
 	self.ColorPickerContainer = vgui.Create("DPanelList", pnl)
 	self.ColorPickerContainer:SetPos(0, colorPickerY)
-	self.ColorPickerContainer:SetSize(self.Width/2, pnl:GetParent():GetTall() - colorPickerY - 60)
+	self.ColorPickerContainer:SetSize(self.BaseWidth/2, pnl:GetParent():GetTall() - colorPickerY - 60)
 	
 	self.ColorPicker = vgui.Create( "DColorMixer", self.ColorPickerContainer )
 	self.ColorPicker:SetPos( 5, 5 )
-	self.ColorPicker:SetSize( self.Width/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
+	self.ColorPicker:SetSize( self.BaseWidth/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
 	self.ColorPicker.HSV.OldRelease = self.ColorPicker.HSV.OnMouseReleased
 	self.ColorPicker.HSV.OnMouseReleased = function( mcode )
 		self.ColorPicker.HSV.OldRelease( mcode )
@@ -124,7 +135,7 @@ function TAB:Initialize( pnl )
 	--privileges
 	-- // the privilege filter
 
-	local privStartX = self.Width/2
+	local privStartX = self.BaseWidth/2
 
 	self.PrivFilterLabel = vgui.Create( "DLabel", pnl )
 	self.PrivFilterLabel:SetPos( privStartX + 6, 0 )
@@ -134,7 +145,7 @@ function TAB:Initialize( pnl )
 
 	self.PrivFilter = vgui.Create( "DComboBox", pnl )
 	self.PrivFilter:SetPos( privStartX + 80, 0 )
-	self.PrivFilter:SetSize( self.Width/2 - 12 - 80, 20 )
+	self.PrivFilter:SetSize( self.BaseWidth/2 - 12 - 80, 20 )
 	self.PrivFilter:AddChoice( "Evolve Privileges" )
 	self.PrivFilter:AddChoice( "Weapons" )
 	self.PrivFilter:AddChoice( "Entities" )
@@ -150,9 +161,9 @@ function TAB:Initialize( pnl )
 	-- // Create the privilege list
 	self.PrivList = vgui.Create( "DListView", pnl )
 	self.PrivList:SetPos( privStartX, 20 + 6 )
-	self.PrivList:SetSize( self.Width/2 - 6, pnl:GetParent():GetTall() - 62 )
+	self.PrivList:SetSize( self.BaseWidth/2 - 6, pnl:GetParent():GetTall() - 62 )
 	local col = self.PrivList:AddColumn( "Privilege" )
-	col:SetFixedWidth( (self.Width/2) * 0.8 )
+	col:SetFixedWidth( (self.BaseWidth/2) * 0.8 )
 	
 	-- // Make the privilege enabled column toggle all on/all off
 	col = self.PrivList:AddColumn( "" )
@@ -201,7 +212,7 @@ function TAB:Initialize( pnl )
 	
 	// Remove button
 	self.RemoveButton = vgui.Create( "EvolveButton", pnl )
-	self.RemoveButton:SetPos( self.Width/2 - 60 - 6, pnl:GetParent():GetTall() - 58 )
+	self.RemoveButton:SetPos( self.BaseWidth/2 - 60 - 6, pnl:GetParent():GetTall() - 58 )
 	self.RemoveButton:SetSize( 60, 22 )
 	self.RemoveButton:SetButtonText( "Remove" )
 	self.RemoveButton.DoClick = function()
@@ -217,7 +228,7 @@ function TAB:Initialize( pnl )
 	
 	// Rename button
 	self.RenameButton = vgui.Create( "EvolveButton", pnl )
-	self.RenameButton:SetPos( self.Width/2 - 125 - 6, pnl:GetParent():GetTall() - 58 )
+	self.RenameButton:SetPos( self.BaseWidth/2 - 125 - 6, pnl:GetParent():GetTall() - 58 )
 	self.RenameButton:SetSize( 60, 22 )
 	self.RenameButton:SetButtonText( "Rename" )
 	self.RenameButton.DoClick = function()
@@ -302,7 +313,7 @@ function TAB:UpdatePrivileges()
 			line.State = vgui.Create( "DImage", line )
 			line.State:SetImage( "icon16/tick.png" )
 			line.State:SetSize( 16, 16 )
-			line.State:SetPos( self.Width/2 * 0.875 - 12, 1 )
+			line.State:SetPos( self.BaseWidth/2 * 0.875 - 12, 1 )
 			
 			line.Think = function()
 				if ( line.LastRank != self.RankList:GetSelected()[1].Rank ) then line.LastRank = self.RankList:GetSelected()[1].Rank else return end
