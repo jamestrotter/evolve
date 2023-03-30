@@ -12,7 +12,10 @@ TAB.Privileges = { "Rank menu" }
 // This determines if the second privilege list column toggles all privileges on or off
 TAB.AllToggle = true
 
+
+
 function TAB:Initialize( pnl )
+
 	// Create the rank list
 	self.RankList = vgui.Create( "DListView", pnl )
 	self.RankList:SetPos( 0, 0 )
@@ -51,71 +54,21 @@ function TAB:Initialize( pnl )
 		self.Usergroup.Selected = evolve.ranks[ self.LastRank ].UserGroup or "unknown"
 	end
 	
-	// Create the privilege filter
-	self.PrivFilter = vgui.Create( "DComboBox", pnl )
-	self.PrivFilter:SetPos( 0, self.RankList:GetTall() + 84 )
-	self.PrivFilter:SetSize( self.Width/2 - 6, 20 )
-	self.PrivFilter:AddChoice( "Privileges" )
-	self.PrivFilter:AddChoice( "Weapons" )
-	self.PrivFilter:AddChoice( "Entities" )
-	self.PrivFilter:AddChoice( "Tools" )
-	self.PrivFilter:ChooseOptionID( 1 )
-	self.PrivFilter.OnSelect = function( id, value, data )
-		self.AllToggle = true
-		
-		self.PrivFilter.Selected = data
-		self:UpdatePrivileges()
-	end
-	
-	// Create the privilege list
-	self.PrivList = vgui.Create( "DListView", pnl )
-	self.PrivList:SetPos( 0, self.RankList:GetTall() + 84 + 20 + 5 )
-	self.PrivList:SetSize( self.Width/2 - 6, pnl:GetParent():GetTall() - 267 - 20 - 5 )
-	local col = self.PrivList:AddColumn( "Privilege" )
-	col:SetFixedWidth( (self.Width/2) * 0.8 )
-	
-	// Make the privilege enabled column toggle all on/all off
-	col = self.PrivList:AddColumn( "" )
-	col.DoClick = function()
-		local filter
-		if ( self.PrivFilter.Selected == "Weapons" ) then filter = "@"
-		elseif ( self.PrivFilter.Selected == "Entities" ) then filter = ":"
-		elseif ( self.PrivFilter.Selected == "Tools" ) then filter = "#"
-		end
-		
-		RunConsoleCommand( "ev_setrank", self.RankList:GetSelected()[1].Rank, self.AllToggle and 1 or 0, filter )
-		self.AllToggle = !self.AllToggle
-	end
-	
 	self.PropertyContainer = vgui.Create( "DPanelList", pnl )
 	self.PropertyContainer:SetPos( 0, 130 )
 	self.PropertyContainer:SetSize( self.Width/2 - 6, 74 )
-	
-	self.ColorPickerContainer = vgui.Create("DPanelList", pnl)
-	self.ColorPickerContainer:SetPos(self.Width/2, 0)
-	self.ColorPickerContainer:SetSize(self.Width/2, pnl:GetParent():GetTall())
-	
-	// Rank color
-	self.ColorPicker = vgui.Create( "DColorMixer", self.ColorPickerContainer )
-	self.ColorPicker:SetPos( 5, 5 )
-	self.ColorPicker:SetSize( self.Width/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
-	self.ColorPicker.HSV.OldRelease = self.ColorPicker.HSV.OnMouseReleased
-	self.ColorPicker.HSV.OnMouseReleased = function( mcode )
-		self.ColorPicker.HSV.OldRelease( mcode )
-		local color = self.ColorPicker:GetColor()
-		RunConsoleCommand( "ev_setrankp", self.RankList:GetSelected()[1].Rank, self.Immunity:GetValue(), self.Usergroup.Selected, color.r, color.g, color.b )
-	end
-	self.ColorPicker:SetColor( color_white )
-	
+
 	// Immunity
 	self.Immunity = vgui.Create( "DNumSlider", self.PropertyContainer )
-	self.Immunity:SetPos( 74, 5 )
-	self.Immunity:SetWide( self.Width/2 - 79 - 6 )
+	self.Immunity:SetPos( 6, 5 )
+	self.Immunity:SetWide( self.Width/2 - 12 )
 	self.Immunity:SetDecimals( 0 )
 	self.Immunity:SetMin( 0 )
 	self.Immunity:SetMax( 99 )
 	self.Immunity:SetText( "Immunity" )
 	self.Immunity.Label:SetDark(true)
+	self.Immunity:SetTooltip( "Players can only issue commands on ranks of immunity level equal or lower to their own" )
+	
 	self.Immunity.Think = function()
 		if ( input.IsMouseDown( MOUSE_LEFT ) ) then
 			self.applySettings = true
@@ -130,6 +83,12 @@ function TAB:Initialize( pnl )
 	end
 	
 	// User group
+	self.UsergroupLabel = vgui.Create( "DLabel", self.PropertyContainer )
+	self.UsergroupLabel:SetPos( 6, 49 )
+	self.UsergroupLabel:SetText( "User Group" )
+	self.UsergroupLabel:SetDark(true)
+
+	//wtf does user group even do?
 	self.Usergroup = vgui.Create( "DComboBox", self.PropertyContainer )
 	self.Usergroup:SetPos( 74, 49 )
 	self.Usergroup:SetSize( self.Width/2 - 79 - 6, 20 )
@@ -142,6 +101,72 @@ function TAB:Initialize( pnl )
 		local color = self.ColorPicker:GetColor()
 		RunConsoleCommand( "ev_setrankp", self.RankList:GetSelected()[1].Rank, self.Immunity:GetValue(), data, color.r, color.g, color.b )
 	end
+	// end user group
+
+	//colour picker
+	local colorPickerY = self.RankList:GetTall() + 84
+	self.ColorPickerContainer = vgui.Create("DPanelList", pnl)
+	self.ColorPickerContainer:SetPos(0, colorPickerY)
+	self.ColorPickerContainer:SetSize(self.Width/2, pnl:GetParent():GetTall() - colorPickerY - 60)
+	
+	self.ColorPicker = vgui.Create( "DColorMixer", self.ColorPickerContainer )
+	self.ColorPicker:SetPos( 5, 5 )
+	self.ColorPicker:SetSize( self.Width/2 - 6, self.ColorPickerContainer:GetTall() - 10 )
+	self.ColorPicker.HSV.OldRelease = self.ColorPicker.HSV.OnMouseReleased
+	self.ColorPicker.HSV.OnMouseReleased = function( mcode )
+		self.ColorPicker.HSV.OldRelease( mcode )
+		local color = self.ColorPicker:GetColor()
+		RunConsoleCommand( "ev_setrankp", self.RankList:GetSelected()[1].Rank, self.Immunity:GetValue(), self.Usergroup.Selected, color.r, color.g, color.b )
+	end
+	self.ColorPicker:SetColor( color_white )
+	//end colour picker
+
+	--privileges
+	-- // the privilege filter
+
+	local privStartX = self.Width/2
+
+	self.PrivFilterLabel = vgui.Create( "DLabel", pnl )
+	self.PrivFilterLabel:SetPos( privStartX + 6, 0 )
+	self.PrivFilterLabel:SetSize( 80, 20 )
+	self.PrivFilterLabel:SetText( "Privilege Type" )
+	self.PrivFilterLabel:SetDark(true)
+
+	self.PrivFilter = vgui.Create( "DComboBox", pnl )
+	self.PrivFilter:SetPos( privStartX + 80, 0 )
+	self.PrivFilter:SetSize( self.Width/2 - 12 - 80, 20 )
+	self.PrivFilter:AddChoice( "Evolve Privileges" )
+	self.PrivFilter:AddChoice( "Weapons" )
+	self.PrivFilter:AddChoice( "Entities" )
+	self.PrivFilter:AddChoice( "Tools" )
+	self.PrivFilter:ChooseOptionID( 1 )
+	self.PrivFilter.OnSelect = function( id, value, data )
+		self.AllToggle = true
+		
+		self.PrivFilter.Selected = data
+		self:UpdatePrivileges()
+	end
+	
+	-- // Create the privilege list
+	self.PrivList = vgui.Create( "DListView", pnl )
+	self.PrivList:SetPos( privStartX, 20 + 6 )
+	self.PrivList:SetSize( self.Width/2 - 6, pnl:GetParent():GetTall() - 62 )
+	local col = self.PrivList:AddColumn( "Privilege" )
+	col:SetFixedWidth( (self.Width/2) * 0.8 )
+	
+	-- // Make the privilege enabled column toggle all on/all off
+	col = self.PrivList:AddColumn( "" )
+	col.DoClick = function()
+		local filter
+		if ( self.PrivFilter.Selected == "Weapons" ) then filter = "@"
+		elseif ( self.PrivFilter.Selected == "Entities" ) then filter = ":"
+		elseif ( self.PrivFilter.Selected == "Tools" ) then filter = "#"
+		end
+		
+		RunConsoleCommand( "ev_setrank", self.RankList:GetSelected()[1].Rank, self.AllToggle and 1 or 0, filter )
+		self.AllToggle = !self.AllToggle
+	end
+	--end privileges
 	
 	// New button
 	self.NewButton = vgui.Create( "EvolveButton", pnl )
@@ -265,7 +290,7 @@ function TAB:UpdatePrivileges()
 		// Get first character to determine what kind of privilege this is.
 		local prefix = string.Left( privilege, 1 )
 		
-		if ( ( prefix == "@" and self.PrivFilter.Selected == "Weapons" ) or ( prefix == ":" and self.PrivFilter.Selected == "Entities" ) or ( prefix == "#" and self.PrivFilter.Selected == "Tools" ) or ( !string.match( prefix, "[@:#]" ) and ( self.PrivFilter.Selected or "Privileges" ) == "Privileges" ) ) then
+		if ( ( prefix == "@" and self.PrivFilter.Selected == "Weapons" ) or ( prefix == ":" and self.PrivFilter.Selected == "Entities" ) or ( prefix == "#" and self.PrivFilter.Selected == "Tools" ) or ( !string.match( prefix, "[@:#]" ) and ( self.PrivFilter.Selected or "Evolve Privileges" ) == "Evolve Privileges" ) ) then
 			local line
 			if ( string.match( prefix, "[@:]" ) ) then
 				line = self.PrivList:AddLine( self:PrintNameByClass( string.sub( privilege, 2 ) ), "" )
@@ -304,7 +329,7 @@ function TAB:UpdatePrivileges()
 			end
 		end
 	end
-	self.PrivList:SortByColumn( 1 )
+
 	self.PrivList:SelectFirstItem()
 end
 
